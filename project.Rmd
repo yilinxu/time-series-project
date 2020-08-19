@@ -77,6 +77,6 @@ arima_model<-auto.arima(train_gdp)
 arima_model
 checkresiduals(arima_model)
 arima_fc<-forecast(arima_model,h=42)
-autoplot(train_gdp) + autolayer(arima_fc,series="ETS forecast")
+autoplot(train_gdp) + autolayer(arima_fc,series="ARIMA forecast")
 accuracy(arima_fc,test_gdp)
 ```
