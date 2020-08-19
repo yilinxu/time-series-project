@@ -1,0 +1,82 @@
+---
+title: "project"
+author: "yilin xu"
+date: "8/18/2020"
+output: 
+  html_document:
+    theme: cerulean
+    highlight: tango
+    code_folding: none
+    toc: yes
+    toc_depth: 3
+    toc_float: true
+---
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning=FALSE)
+#remove all objects from workspace
+rm(list = ls())
+# Load necessary packages
+install.packages(setdiff(c('TSstudio','readxl','stringr','tseries','fpp2','forecast','EnvStats','olsrr'), rownames(installed.packages())))
+library('TSstudio')
+library('readxl')
+library("dplyr")
+library("stringr")
+library('tseries')
+library('forecast')
+library('fpp2')
+library('EnvStats')
+library('TSA')
+library('olsrr')
+```
+#### Data
+For this project, we used US GDP quarterly dataset from 1947 to 2020. The dataset is download from https://fred.stlouisfed.org/series/GDPC1 
+
+### Exploratory Anlyaisis {.tabset}
+#### Load dataset
+```{r}
+gdp_df<-read.csv("GDPC1.csv")
+gdp_ts<-ts(gdp_df$GDPC1,frequency=4,start=c(1947,1))
+head(gdp_ts)
+```
+
+#### Visualize dataset
+```{r}
+autoplot(gdp_ts)
+```
+
+#### Stablize variance
+```{r}
+lambda<-BoxCox.lambda(gdp_ts)
+transform_gdp<-BoxCox(gdp_ts,lambda=lambda)
+autoplot(transform_gdp)
+```
+
+#### Split train and test dataset
+```{r}
+train_gdp<-window(transform_gdp,end=c(2009,4))
+test_gdp<-window(transform_gdp,start=c(2010,1))
+train_gdp
+test_gdp
+```
+
+
+### Model Construction {.tabset}
+#### ETS Model
+```{r}
+ets_model<-ets(train_gdp)
+ets_model
+checkresiduals(ets_model)
+ets_fc<-forecast(ets_model,h=42)
+autoplot(train_gdp) + autolayer(ets_fc,series="ETS forecast")
+accuracy(ets_fc,test_gdp)
+```
+
+#### ARIMA Model
+```{r}
+arima_model<-auto.arima(train_gdp)
+arima_model
+checkresiduals(arima_model)
+arima_fc<-forecast(arima_model,h=42)
+autoplot(train_gdp) + autolayer(arima_fc,series="ETS forecast")
+accuracy(arima_fc,test_gdp)
+```
