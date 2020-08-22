@@ -27,6 +27,7 @@ library('fpp2')
 library('EnvStats')
 library('TSA')
 library('olsrr')
+library('vars')
 ```
 #### Data
 For this project, we used US GDP quarterly dataset from 1947 to 2020. The dataset is download from https://fred.stlouisfed.org/series/GDPC1 
@@ -77,6 +78,68 @@ arima_model<-auto.arima(train_gdp)
 arima_model
 checkresiduals(arima_model)
 arima_fc<-forecast(arima_model,h=42)
-autoplot(train_gdp) + autolayer(arima_fc,series="ETS forecast")
+autoplot(train_gdp) + autolayer(arima_fc,series="ARIMA forecast")
 accuracy(arima_fc,test_gdp)
+```
+
+### VAR Model {.tabset}
+#### Construct mts 
+```{r}
+data<-read.csv('All_Data.csv')
+data_ts<-ts(data,frequency=4,start=c(1967,3))
+log_gdp<-log(data_ts[,'GDP'])
+log_unrate<-log(data_ts[,'UNRATE'])
+log_consop<-log(data_ts[,'CONS_OP'])
+log_recprob<-log(data_ts[,'REC_PROB']+0.001)
+reorg_ts<-cbind(log_gdp,log_unrate,log_consop,log_recprob)
+autoplot(reorg_ts)
+```
+
+#### Correlation estimation
+```{r}
+diff_log_gdp<-diff(log_gdp,lag=1,difference=1)
+plot(diff_log_gdp,log_unrate)
+cor(diff_log_gdp,log_unrate[-1])
+plot(diff_log_gdp,log_consop)
+cor(diff_log_gdp,log_consop[-1])
+plot(diff_log_gdp,log_recprob)
+cor(diff_log_gdp,log_recprob[-1])
+```
+
+Use diff to remove the trend. The investigate the correlation between the gdp and the three variables. Conclusion: GDP is positive correlate with consumer opinion and negatively correlate with recession probability. There is no significant correlation between gdp and the unemployment rate.
+
+#### Var Model construction
+```{r}
+train_gdp<-window(reorg_ts[,'log_gdp'],end=c(2009,4))
+test_gdp<-window(reorg_ts[,'log_gdp'],end=c(2010,1))
+
+train_consop<-window(reorg_ts[,'log_consop'],end=c(2009,4))
+test_consop<-window(reorg_ts[,'log_consop'],end=c(2010,1))
+
+train_recprob<-window(reorg_ts[,'log_recprob'],end=c(2009,4))
+test_recprob<-window(reorg_ts[,'log_recprob'],end=c(2010,1))
+
+var_model<-VAR(cbind(train_gdp,train_consop,train_recprob),p=2,type="both")
+summary(var_model)
+```
+
+#### Estimate Model
+```{r}
+gdp_residuals<-residuals(var_model)[,'train_gdp']
+plot(gdp_residuals,type='l')
+acf(gdp_residuals)
+Box.test(gdp_residuals)
+```
+
+#### Predict 
+```{r}
+forecast_obj<-forecast(var_model,h=49)
+log_gdp_obj = forecast_obj[[2]]$train_gdp
+log_gdp_fc = log_gdp_obj[3]$mean
+autoplot(train_gdp) + autolayer(log_gdp_fc ,series="VAR forecast")
+log_rec_obj = forecast_obj[[2]]$train_recprob
+log_rec_fc = log_rec_obj[3]$mean
+autoplot(train_recprob) + autolayer(log_rec_fc ,series="VAR forecast")
+accuracy(test_gdp,log_gdp_fc)
+accuracy(test_recprob,log_rec_fc)
 ```
