@@ -54,8 +54,8 @@ autoplot(transform_gdp)
 
 #### Split train and test dataset
 ```{r}
-train_gdp<-window(transform_gdp,end=c(2009,4))
-test_gdp<-window(transform_gdp,start=c(2010,1))
+train_gdp<-window(transform_gdp,end=c(2017,4))
+test_gdp<-window(transform_gdp,start=c(2018,1))
 train_gdp
 test_gdp
 ```
@@ -67,9 +67,9 @@ test_gdp
 ets_model<-ets(train_gdp)
 ets_model
 checkresiduals(ets_model)
-ets_fc<-forecast(ets_model,h=42)
+ets_fc<-forecast(ets_model,h=8)
 autoplot(train_gdp) + autolayer(ets_fc,series="ETS forecast")
-accuracy(ets_fc,test_gdp)
+accuracy(exp(ets_fc$mean),exp(test_gdp))
 ```
 
 #### ARIMA Model
@@ -77,9 +77,9 @@ accuracy(ets_fc,test_gdp)
 arima_model<-auto.arima(train_gdp)
 arima_model
 checkresiduals(arima_model)
-arima_fc<-forecast(arima_model,h=42)
+arima_fc<-forecast(arima_model,h=8)
 autoplot(train_gdp) + autolayer(arima_fc,series="ARIMA forecast")
-accuracy(arima_fc,test_gdp)
+accuracy(exp(arima_fc$mean),exp(test_gdp))
 ```
 
 ### VAR Model {.tabset}
@@ -110,16 +110,17 @@ Use diff to remove the trend. The investigate the correlation between the gdp an
 
 #### Var Model construction
 ```{r}
-train_gdp<-window(reorg_ts[,'log_gdp'],end=c(2009,4))
-test_gdp<-window(reorg_ts[,'log_gdp'],end=c(2010,1))
+train_gdp<-window(reorg_ts[,'log_gdp'],end=c(2017,4))
+test_gdp<-window(reorg_ts[,'log_gdp'],start=c(2018,1))
 
-train_consop<-window(reorg_ts[,'log_consop'],end=c(2009,4))
-test_consop<-window(reorg_ts[,'log_consop'],end=c(2010,1))
+train_consop<-window(reorg_ts[,'log_consop'],end=c(2017,4))
+test_consop<-window(reorg_ts[,'log_consop'],start=c(2018,1))
 
-train_recprob<-window(reorg_ts[,'log_recprob'],end=c(2009,4))
-test_recprob<-window(reorg_ts[,'log_recprob'],end=c(2010,1))
+train_recprob<-window(reorg_ts[,'log_recprob'],end=c(2017,4))
+test_recprob<-window(reorg_ts[,'log_recprob'],start=c(2018,1))
 
-var_model<-VAR(cbind(train_gdp,train_consop,train_recprob),p=2,type="both")
+VARselect(cbind(train_gdp,train_consop,train_recprob))
+var_model<-VAR(cbind(train_gdp,train_consop,train_recprob),p=4,type="both")
 summary(var_model)
 ```
 
@@ -133,13 +134,17 @@ Box.test(gdp_residuals)
 
 #### Predict 
 ```{r}
-forecast_obj<-forecast(var_model,h=49)
+forecast_obj<-forecast(var_model,h=8)
 log_gdp_obj = forecast_obj[[2]]$train_gdp
 log_gdp_fc = log_gdp_obj[3]$mean
-autoplot(train_gdp) + autolayer(log_gdp_fc ,series="VAR forecast")
+autoplot(exp(train_gdp))+ autolayer(exp(log_gdp_fc) ,series="VAR forecast")
 log_rec_obj = forecast_obj[[2]]$train_recprob
 log_rec_fc = log_rec_obj[3]$mean
-autoplot(train_recprob) + autolayer(log_rec_fc ,series="VAR forecast")
-accuracy(test_gdp,log_gdp_fc)
-accuracy(test_recprob,log_rec_fc)
+autoplot(exp(train_recprob))+ autolayer(exp(log_rec_fc),series="VAR forecast")
+log_consop_obj = forecast_obj[[2]]$train_consop
+log_consop_fc = log_consop_obj[3]$mean
+autoplot(exp(train_consop))+ autolayer(exp(log_consop_fc),series="VAR forecast")
+accuracy(exp(test_gdp),exp(log_gdp_fc))
+accuracy(exp(test_recprob),exp(log_rec_fc))
+accuracy(exp(test_consop),exp(log_consop_fc))
 ```
