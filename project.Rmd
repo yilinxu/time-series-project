@@ -48,10 +48,10 @@ autoplot(gdp_ts)
 
 #### Split train and test dataset
 ```{r}
-train_gdp<-window(gdp_ts,end=c(2010,1))
-test_gdp<-window(gdp_ts,start=c(2010,2),end=c(2012,2))
-train_gdp
-test_gdp
+train_gdp<-window(gdp_ts,end=c(2017,3))
+test_gdp<-window(gdp_ts,start=c(2017,4))
+length(train_gdp)
+length(test_gdp)
 ```
 
 
@@ -114,17 +114,17 @@ By calculating the correlation, GDP are positively correlated with comsumer opin
 
 #### Var Model construction
 ```{r}
-train_gdp<-window(diff_log_gdp,end=c(2010,1))
-test_gdp<-window(diff_log_gdp,start=c(2012,2))
+train_gdp<-window(diff_log_gdp,end=c(2017,3))
+test_gdp<-window(diff_log_gdp,start=c(2012,4))
 
-train_unrate<-window(diff_log_unrate,end=c(2010,1))
-test_unrate<-window(diff_log_unrate,start=c(2012,2))
+train_unrate<-window(diff_log_unrate,end=c(2017,3))
+test_unrate<-window(diff_log_unrate,start=c(2017,4))
 
-train_consop<-window(diff_log_unrate,end=c(2010,1))
-test_consop<-window(diff_log_unrate,start=c(2012,2))
+train_consop<-window(diff_log_unrate,end=c(2017,3))
+test_consop<-window(diff_log_unrate,start=c(2017,4))
 
-train_recprob<-window(diff_log_recprob,end=c(2010,1))
-test_recprob<-window(diff_log_recprob,start=c(2012,2))
+train_recprob<-window(diff_log_recprob,end=c(2017,3))
+test_recprob<-window(diff_log_recprob,start=c(2017,4))
 
 VARselect(cbind(train_gdp,train_unrate))
 var_model<-VAR(cbind(train_gdp,train_unrate),p=2,type="both")
@@ -144,7 +144,7 @@ log_gdp_obj = forecast_obj[[2]]$train_gdp
 log_gdp_fc = log_gdp_obj[3]$mean
 gdp<-exp(diffinv(c(log_gdp[1],train_gdp,log_gdp_fc)))
 gdp_fc<-tail(gdp,n=9)
-gdp_value<-window(data_ts[,'GDP'],start=c(2010,2),end=c(2012,2))
+gdp_value<-window(data_ts[,'GDP'],start=c(2017,4))
 accuracy(gdp_fc,gdp_value)
 
 ```
